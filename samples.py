@@ -40,6 +40,13 @@ def mymain(*supplied_keys):
             'cmn': 'always',
             'hasdup': ['dup', 'dup', 'other'],
         },
+        'equiv1': {'key': 'value', },
+        'equiv2': {'key': ['value', ], },
+        'equiv3': {'key': [{'key': 'value', }, ], },
+        'equiv4': {'key': [{'key': [{'key': 'value', }, ], }, ], },
+        'equiv5': {'other': [{'key': 'value'}, ], },
+        'equiv6': {'key': [{'other': [{'key': 'value', }, ], }, ], },
+        'equiv7': {'other1': [{'other2': [{'key': 'value', }, ], }, ], },
         'sub1': {
             'family': 'bjt',
             'footprint': '',
@@ -103,11 +110,11 @@ def mymain(*supplied_keys):
             'third': [cheeses, vegetables, meats, seafood, ],
         },
     ]
-    print(samples['pizza'])
+    # print(samples['pizza'])  # DEBUG
     samples['pizza2'] = {
         'toppings': (cheeses, meats)
     }
-    print(samples['pizza2'])
+    # print(samples['pizza2'])  # DEBUG
 
     if len(sys.argv) > 1:
         smpl_keys = sys.argv[1:]

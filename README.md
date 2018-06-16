@@ -101,3 +101,95 @@ for cmb in dedup:
 print('{} unique pizza topping combinations'.format(len(dedup)))
 ```
 `python3 samples.py pizza` shows both the raw and unique combinations and counts.
+
+## A somewhat more formal description of expansion
+
+* The expansion of anything other than a list or a dictionary is the source item itself [«⁴»](#fn4)
+* The expansion of a list is the «set¦sequence» of expansions of the elements in the list
+* The expansion of a dictionary is a «set¦sequence» of dictionaries containing the cascaded (merge) of the expansion of the elements in the (input) dictionary. [«¹»](#fn1)
+* The expansion of a dictionary element (key, value pair) is a dictionary.
+  * The value of the element is expanded
+  * If an instance of the expansion is NOT a dictionary, the source element expansion instance is a dictionary with a single element: the key of the source element, with a value of the expansion instance.
+  * If an instance of the expansion is a dictionary, the source element expansion instance is that dictionary.  The source element key is not used.
+  * All elements with values that expand to themselves (everything except lists and dictionary) are collected first.  That reduces the processing of those elements to a single dictionary with those key value pairs.  That combined dictionary is then the base for merges from the expansion cases. [«²»](#fn2)
+* The (css style) cascade is implemented as a dictionary merge, of child dictionaries into (copies of) the parent dictionary.  Copies are needed to prevent 'bleed' from one expansion instance to the next. [«³»](#fn3)
+* The expansion of each successive element of a dictionary is cascaded into each expansion instance for the previous key.  That can be represented as an expanding 'tree'.  A more condensed form, is to represent it as a 'network', where the multiple expansions of an element all connect to the expansion of the next element.  When all possible paths through the (directed) network are followed, the result is the same as the path from the root to each leaf of the tree representation.
+
+### graphs
+
+A list creates a sibling (not child) node for each element
+
+list expansion.
+```tex
+list: —┬— «node1»
+       ├— «node2»
+       ├— «node3»
+       └— «node…»
+```
+Each node is the expansion of one element of the list.
+
+dictionary expansion.
+```tex
+dictionary: — «node1» —— «node2» —— «node3» —— «node…»
+```
+Each node is the expansion of one element (key:value pair) of the dictionary.
+
+dictionary element expansion: the value (from key:value pair) is expanded.
+
+When the value expansion instance is NOT a dictionary:</br>
+element expansion.
+```tex
+{element_key: «expansion instance»}
+```
+
+When the value expansion instance IS a dictionary:</br>
+element expansion.
+```tex
+«expansion instance»
+```
+
+expanded intermediate dictionary node with list as value
+```tex
+         ┌— «node2.1» —┐
+         ├— «node2.2» —┤
+«node1» —┼— «node2.3» —┼—«node3»
+         ├— «node2.4» —┤
+         └— «node2.5» —┘
+```
+
+Every path through the graph, from leaf to the (null) root, generates a separate result.  That result is the (CSS style) cascade of the expanded values of the nodes traversed.
+
+### equivalent inputs
+
+```tex
+{'key': 'value', }
+{'key': ['value', ], }
+{'key': [{'key': 'value', }, ], }
+```
+* NOTE: the only difference between the static value, and the list with a single static value, is that the standalone static value will be collected first, instead of being processed in key order.
+
+Due to the recursive nature of the processing, it should be clear that the following input also produces the same result.
+```tex
+{'key': [{'key': [{'key': 'value', }, ], }, ], }
+```
+
+What may not be so obvious, is that so do these.
+```tex
+{'other': [{'key': 'value'}, ], }
+{'key': [{'other': [{'key': 'value', }, ], }, ], }
+{'other1': [{'other2': [{'key': 'value', }, ], }, ], }
+```
+
+Samples equiv1 through equiv7 demonstrate those cases, each of which creates a single output of
+```tex
+{'key': 'value'}
+```
+
+### Expansion Detail Footnotes
+<a name="fn1">«¹»</a> Standard python dictionary element processing order is undefined.  That means that the cascade can have expansion instances of one element overriding the elements of expansion instanced of a different element.  When that is possible, use collections.OrderedDict instead of a standard dict, and specify the key order as needed to get the desired results.
+
+<a name="fn2">«²»</a> Handling the non-expanding dictionary elements first is important.  The way the cascade works, these become the default values that expansion instances can override.  If these were not handled first, they could override cascaded values from the expansion instances instead.  An unlikely intended outcome.
+
+<a name="fn3">«³»</a> The cascade is (effectively) implemented as a recursive  `parent_dictionary.copy().update(child_node_expansion_instance)`, starting from the root node, out to a leaf.
+
+<a name="fn4">«⁴»</a> The current version of the code rejects non list or dictionary sources.  That is not intended to change, to be more consistent with the internal recursive processing.  Next version hopefully.
