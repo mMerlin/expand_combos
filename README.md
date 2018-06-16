@@ -138,7 +138,7 @@ dictionary element expansion: the value (from key:value pair) is expanded.
 
 When the value expansion instance is NOT a dictionary:</br>
 element expansion.
-```tex
+```python
 {element_key: «expansion instance»}
 ```
 
@@ -161,7 +161,7 @@ Every path through the graph, from leaf to the (null) root, generates a separate
 
 ### equivalent inputs
 
-```tex
+```python
 {'key': 'value', }
 {'key': ['value', ], }
 {'key': [{'key': 'value', }, ], }
@@ -169,19 +169,19 @@ Every path through the graph, from leaf to the (null) root, generates a separate
 * NOTE: the only difference between the static value, and the list with a single static value, is that the standalone static value will be collected first, instead of being processed in key order.
 
 Due to the recursive nature of the processing, it should be clear that the following input also produces the same result.
-```tex
+```python
 {'key': [{'key': [{'key': 'value', }, ], }, ], }
 ```
 
 What may not be so obvious, is that so do these.
-```tex
+```python
 {'other': [{'key': 'value'}, ], }
 {'key': [{'other': [{'key': 'value', }, ], }, ], }
 {'other1': [{'other2': [{'key': 'value', }, ], }, ], }
 ```
 
 Samples equiv1 through equiv7 demonstrate those cases, each of which creates a single output of
-```tex
+```python
 {'key': 'value'}
 ```
 
