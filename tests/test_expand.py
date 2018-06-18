@@ -24,8 +24,6 @@ import env  # append parent directory to import path
 # pylint: enable=unused-import
 # needs both 'env' above, and __init__.py to exist, to import and keep pylint happy
 from expand_combinations import ExpandCombinations
-# pylint: disable=fixme
-# TODO handle todo cases, and remove above fixme message suppression
 # pylint: disable=protected-access
 
 
@@ -98,8 +96,8 @@ class TestAllowedNestable(unittest.TestCase):
             [3, None, 'me to', 5.7],  # simple values in list
             [[], [None], {}, [{}], {'key': ['value', 'test']}, ],  # complex/compound values
         ]
-        # create test cases that should not be accepted
-        cls.test_bad = [
+        # create test cases that should not be processed
+        cls.test_other = [
             3,
             'test',
             None,
@@ -115,7 +113,7 @@ class TestAllowedNestable(unittest.TestCase):
     # def tearDownClass(cls):
     #     pass
 
-    # @unittest.skip('reduce clutter testing with ordered dictionary')
+    # @unittest.skip('why?')
     def test_accepts_dict(self):
         '''should approve using any dictionary'''
         # The function does not, is not intended to, do a full parse.  It is just
@@ -124,9 +122,9 @@ class TestAllowedNestable(unittest.TestCase):
             with self.subTest(msg=repr(case)):
                 self.assertTrue(
                     ExpandCombinations.nestable_object(case),
-                    '{} dict should be accepted'.format(type(case)))
+                    '{} dict should be processed'.format(type(case)))
 
-    # @unittest.skip('reduce clutter testing with ordered dictionary')
+    # @unittest.skip('why?')
     def test_accepts_list(self):
         '''should approve using any list'''
         # The function does not, is not intended to do, a full parse.  It is just
@@ -135,16 +133,16 @@ class TestAllowedNestable(unittest.TestCase):
             with self.subTest(msg=repr(case)):
                 self.assertTrue(
                     ExpandCombinations.nestable_object(case),
-                    '{} list should be accepted'.format(type(case)))
+                    '{} list should be processed'.format(type(case)))
 
-    # @unittest.skip('reduce clutter testing with ordered dictionary')
+    # @unittest.skip('why?')
     def test_rejects_other(self):
         '''should reject anything else'''
-        for case in self.test_bad:
+        for case in self.test_other:
             with self.subTest(msg=repr(case)):
                 self.assertFalse(
                     ExpandCombinations.nestable_object(case),
-                    '{!r} argument should be rejected'.format(type(case)))
+                    '{!r} argument should not be processed'.format(type(case)))
 
 
 class TestIteratorCreation(unittest.TestCase):
@@ -156,8 +154,10 @@ class TestIteratorCreation(unittest.TestCase):
             'flat_dict': ['key1', 5, ('flag', 'here'), 'more', ],
             'flat_odict': ['key1', 5, ('flag', 'here'), 'more', ],
             'd_singl_l': ['varkey0'],
+            'd_mix_fel': ['fix1', 'varkey1', ],
             'd_mix_fl': ['fix1', 'varkey1', ],
             'd_mix_2fl': ['fix2', 'fix3', 'varkey2', ],
+            'd_mix_f2el': ['fix4', 'varkey3', 'varkey4', ],
             'd_mix_f2l': ['fix4', 'varkey3', 'varkey4', ],
             'd_nest_2fl': ['fix5', 'fix6', 'varkey5', ],
             'd_nest_2fl1a': ['fix6', ],
@@ -193,18 +193,24 @@ class TestIteratorCreation(unittest.TestCase):
             'd_progressive_4': ['pin', '', ],  # hpd values
         }
         cls.input_case = {
-            'bad_string0': '',
-            'bad_string`': 'just a string',
-            'bad_bool0': True,
-            'bad_bool1': False,
-            'bad_int0': 0,
-            'bad_int1': 10,
-            'bad_int2': -999,
-            'bad_tuple0': (),
-            'bad_tuple1': (['list', 'here'], 23, ),
-            'bad_float0': 0e0,
-            'bad_float1': 5e-20,
-            'bad_float2': -5e20,
+            'mt_string': '',
+            'smpl_string': 'just a string',
+            'bool_true': True,
+            'bool_false': False,
+            'int_zero': 0,
+            'int_plus': 10,
+            'int_minus': -999,
+            'mt_tuple': (),
+            'smpl_tuple0': (['list', 'here'], 23, ),
+            'smpl_tuple1': (0, 1, ),
+            'float_zero': 0e0,
+            'float_plus': 5e-20,
+            'float_minus': -5e20,
+            'test_none': None,
+            'base_class': object,  # class
+            'def_class': TestAllowedNestable,  # class
+            'def_func': permutations,
+            'def_method': TestAllowedNestable.setUpClass,  # function reference
             'empty_list': [],
             'flat_strs': ['one', 'two', 'three', ],
             'one_nest': [['four', 'five'], ],
@@ -231,6 +237,10 @@ class TestIteratorCreation(unittest.TestCase):
             'd_singl_l': {
                 input_keys['d_singl_l'][0]: input_values['var0_vals'],
             },
+            'd_mix_fel': {  # flat + empty list
+                input_keys['d_mix_fel'][0]: input_values['fix1_val'],
+                input_keys['d_mix_fel'][1]: input_values['empty_dict'],
+            },
             'd_mix_fl': {  # flat + list element values
                 input_keys['d_mix_fl'][0]: input_values['fix1_val'],
                 input_keys['d_mix_fl'][1]: input_values['var1_vals'],
@@ -239,6 +249,11 @@ class TestIteratorCreation(unittest.TestCase):
                 input_keys['d_mix_2fl'][0]: input_values['fix2_val'],
                 input_keys['d_mix_2fl'][1]: input_values['fix3_val'],
                 input_keys['d_mix_2fl'][2]: input_values['var2_vals'],
+            },
+            'd_mix_f2el': {
+                input_keys['d_mix_f2el'][0]: input_values['fix4_val'],
+                input_keys['d_mix_f2el'][1]: input_values['empty_dict'],
+                input_keys['d_mix_f2el'][2]: input_values['var4_vals'],
             },
             'd_mix_f2l': {
                 input_keys['d_mix_f2l'][0]: input_values['fix4_val'],
@@ -271,11 +286,6 @@ class TestIteratorCreation(unittest.TestCase):
             (input_keys['d_progressive_1.0'][1], input_values['d_progressive_1.0'][1]),
         ])]
         cls.input_case['d_progressive_2'] = copy.deepcopy(cls.input_case['d_progressive_1'])
-        # print('\nclone 2 {}'.format(cls.input_case['d_progressive_2']))
-        # print('pkg 2 {}'.format(
-        #     cls.input_case['d_progressive_2'][input_keys['d_progressive_0'][2]]))
-        # print('typ p {}'.format(
-        #     type(cls.input_case['d_progressive_2'][input_keys['d_progressive_0'][2]])))
         cls.input_case['d_progressive_2'][input_keys['d_progressive_0'][2]].append(odict([
             (input_keys['d_progressive_2.1'][0], input_values['d_progressive_2.1'][0]),
             (input_keys['d_progressive_2.1'][1], input_values['d_progressive_2.1'][1]),
@@ -315,6 +325,11 @@ class TestIteratorCreation(unittest.TestCase):
                 {input_keys['d_singl_l'][0]: input_values['var0_vals'][1]},
                 {input_keys['d_singl_l'][0]: input_values['var0_vals'][2]},
             ],
+            'd_mix_fel': [  # one flat and one empty list input element
+                {
+                    input_keys['d_mix_fel'][0]: input_values['fix1_val'],
+                },
+            ],
             'd_mix_fl': [  # one flat and one list input element
                 {
                     input_keys['d_mix_fl'][0]: input_values['fix1_val'],
@@ -344,6 +359,20 @@ class TestIteratorCreation(unittest.TestCase):
                     input_keys['d_mix_2fl'][0]: input_values['fix2_val'],
                     input_keys['d_mix_2fl'][1]: input_values['fix3_val'],
                     input_keys['d_mix_2fl'][2]: input_values['var2_vals'][2],
+                },
+            ],
+            'd_mix_f2el': [  # 1 flat and two list (one empty) input elements
+                {
+                    input_keys['d_mix_f2el'][0]: input_values['fix4_val'],
+                    input_keys['d_mix_f2el'][2]: input_values['var4_vals'][0],
+                },
+                {
+                    input_keys['d_mix_f2el'][0]: input_values['fix4_val'],
+                    input_keys['d_mix_f2el'][2]: input_values['var4_vals'][1],
+                },
+                {
+                    input_keys['d_mix_f2el'][0]: input_values['fix4_val'],
+                    input_keys['d_mix_f2el'][2]: input_values['var4_vals'][2],
                 },
             ],
             'd_mix_f2l': [  # 1 flat and two list input elements
@@ -451,63 +480,26 @@ class TestIteratorCreation(unittest.TestCase):
                 a_sol[input_keys['d_progressive_4']] = val
                 cls.expected_out['d_progressive_4'].append(a_sol)
 
-        # print('\nkeys 0   {}'.format(input_keys['d_progressive_0']))  # DEBUG
-        # print('keys 1.0 {}'.format(input_keys['d_progressive_1.0']))  # DEBUG
-        # print('vals 0   {}'.format(input_values['d_progressive_0']))  # DEBUG
-        # print('vals 1.0 {}'.format(input_values['d_progressive_1.0']))  # DEBUG
-        # print('test 1   {}'.format(cls.input_case['d_progressive_1']))  # DEBUG
-        # print('expect 1 {}'.format(cls.expected_out['d_progressive_1']))  # DEBUG
-
-        # test_case = cls.input_case['d_progressive_1']
-        # test_keys = list(test_case.keys())
-        # print('\nkeys 1   {}'.format(test_keys))  # DEBUG
-        # test_0_keys = list(test_case[test_keys[2]][0].keys())
-        # print('keys 1.0 {}'.format(test_0_keys))  # DEBUG
-        # print('vals 0   {}'.format(list(cls.input_case['d_progressive_0'].values())))  # DEBUG
-        # print('vals 1.0 {}'.format(list(test_case[test_keys[2]][0].values())))
-
-        # print('\nkeys 2.1 {}'.format(input_keys['d_progressive_2.1']))  # DEBUG
-        # print('vals 2.1 {}'.format(input_values['d_progressive_2.1']))  # DEBUG
-        # test_case = cls.input_case['d_progressive_2']
-        # test_keys = list(test_case.keys())
-        # print('\nkeys 2   {}'.format(test_keys))  # DEBUG
-        # test_0_keys = list(test_case[test_keys[2]][0].keys())
-        # print('keys 2.0 {}'.format(test_0_keys))  # DEBUG
-        # test_1_keys = list(test_case[test_keys[2]][1].keys())
-        # print('keys 2.1 {}'.format(test_1_keys))  # DEBUG
-        # print('vals 2.0 {}'.format(list(test_case[test_keys[2]][0].values())))
-        # print('vals 2.1 {}'.format(list(test_case[test_keys[2]][1].values())))
-
-        # print('\ntest 1   {}'.format(cls.input_case['d_progressive_1']))  # DEBUG
-        # for idx, solution in enumerate(cls.expected_out['d_progressive_1']):
-        #     print('expected 1[{}] {}'.format(idx, solution))
-        #
-        # print('\ntest 2   {}'.format(cls.input_case['d_progressive_2']))  # DEBUG
-        # for idx, solution in enumerate(cls.expected_out['d_progressive_2']):
-        #     print('expected 2[{}] {}'.format(idx, solution))
-        #
-        # print('\ntest 3   {}'.format(cls.input_case['d_progressive_3']))  # DEBUG
-        # for idx, solution in enumerate(cls.expected_out['d_progressive_3']):
-        #     print('expected 3[{}] {}'.format(idx, solution))
-
-        # print('\ntest 4   {}'.format(cls.input_case['d_progressive_4']))  # DEBUG
-        # for idx, solution in enumerate(cls.expected_out['d_progressive_4']):
-        #     print('expected 4[{}] {}'.format(idx, solution))
-
         # lists of (groups of) test cases
-        cls.bad_cases = [
-            'bad_string0',
-            'bad_string`',
-            'bad_bool0',
-            'bad_bool1',
-            'bad_int0',
-            'bad_int1',
-            'bad_int2',
-            'bad_tuple0',
-            'bad_tuple1',
-            'bad_float0',
-            'bad_float1',
-            'bad_float2',
+        cls.no_proc_cases = [
+            'mt_string',
+            'smpl_string',
+            'bool_true',
+            'bool_false',
+            'int_zero',
+            'int_plus',
+            'int_minus',
+            'mt_tuple',
+            'smpl_tuple0',
+            'smpl_tuple1',
+            'float_zero',
+            'float_plus',
+            'float_minus',
+            'test_none',
+            'base_class',
+            'def_class',
+            'def_func',
+            'def_method',
         ]
         cls.fl_cases = [  # flat lists
             'empty_list',
@@ -531,8 +523,10 @@ class TestIteratorCreation(unittest.TestCase):
         ]
         cls.vd_cases = [  # dictionaries with list variants and nested dictionaries
             'd_singl_l',
+            'd_mix_fel',
             'd_mix_fl',
             'd_mix_2fl',
+            'd_mix_f2el',
             'd_mix_f2l',
             'd_nest_2fl',
             'd_progressive_0',
@@ -546,22 +540,31 @@ class TestIteratorCreation(unittest.TestCase):
     # def tearDownClass(cls):
     #     pass
 
-    # @unittest.skip('reduce clutter testing with ordered dictionary')
-    def test_rejects_many(self):
-        '''check that disallowed data types really are rejected'''
-        for reject_case in self.bad_cases:
-            with self.subTest():
-                with self.assertRaisesRegex(TypeError,
-                                            '.* root object not handled by ExpandCombinations',
-                                            msg='for {!r}'.format(self.input_case[reject_case])):
-                    ExpandCombinations(self.input_case[reject_case])
+    # @unittest.skip('why?')
+    def test_accepts_other(self):
+        '''check that expanding non-processed objects returns exactly the object'''
+        for no_prc_case in self.no_proc_cases:
+            instance = ExpandCombinations(self.input_case[no_prc_case])
+            submsg = repr(self.input_case[no_prc_case])
+            with self.subTest(msg=submsg, case=no_prc_case):
+                self.assertIsInstance(
+                    instance, ExpandCombinations,
+                    'for {!r}'.format(self.input_case[no_prc_case], ctx='instance'))
+            iterator = iter(instance)
+            with self.subTest(msg=submsg, case=no_prc_case, ctx='iterator'):
+                self.assertIsInstance(
+                    iterator, ExpandCombinations,
+                    'for {!r}'.format(self.input_case[no_prc_case]))
+            with self.subTest(msg=submsg, case=no_prc_case, ctx='yield'):
+                # yields itself, and nothing else
+                self.assertEqual(self.input_case[no_prc_case], next(iterator))
+                self.assertRaises(StopIteration, next, iterator)
 
-    # @unittest.skip('reduce clutter testing with ordered dictionary')
+    # @unittest.skip('why?')
     def test_accepts_flat_list(self):
         '''check that a flat list is valid, and uses standard iterator'''
         for exp_case in self.fl_cases:
             instance = ExpandCombinations(self.input_case[exp_case])
-            # print('«{}»mode {}'.format(instance._state['id'], instance._state['mode']))  # DEBUG
             with self.subTest():
                 self.assertIsInstance(
                     instance, ExpandCombinations,
@@ -577,12 +580,11 @@ class TestIteratorCreation(unittest.TestCase):
                     # iterator, list_iterator,  # NameError: name 'list_iterator' is not defined
                     'for {!r}'.format(self.input_case[exp_case]))
 
-    # @unittest.skip('reduce clutter testing with ordered dictionary')
+    # @unittest.skip('why?')
     def test_accepts_flat_dict(self):
         '''check that a flat dictionary is valid, and uses custom iterator'''
         for exp_case in self.fd_cases:
             instance = ExpandCombinations(self.input_case[exp_case])
-            # print('«{}»mode {}'.format(instance._state['id'], instance._state['mode']))  # DEBUG
             with self.subTest():
                 self.assertIsInstance(
                     instance, ExpandCombinations,
@@ -593,7 +595,7 @@ class TestIteratorCreation(unittest.TestCase):
                     iterator, ExpandCombinations,
                     'for {!r}'.format(self.input_case[exp_case]))
 
-    # @unittest.skip('reduce clutter testing with ordered dictionary')
+    # @unittest.skip('why?')
     def test_uses_copyof_flat_list(self):
         '''check that the content of a flat list is not linked (referenced) by output'''
         for exp_case in self.fl_cases:
@@ -618,7 +620,7 @@ class TestIteratorCreation(unittest.TestCase):
                 if in_obj:  # only not equal when input was not an empty list
                     self.assertNotEqual(in_obj, captured, 'in != captured')
 
-    # @unittest.skip('reduce clutter testing with ordered dictionary')
+    # @unittest.skip('why?')
     def test_flatten_nested(self):
         '''check that nested lists are flattened on output, and not references'''
         for nest_case in self.nl_cases:
@@ -641,7 +643,7 @@ class TestIteratorCreation(unittest.TestCase):
                 with self.subTest(msg=repr(self.input_case[nest_case]), ctx='detect reference'):
                     self.assertEqual(self.expected_out[nest_case], captured)
 
-    # @unittest.skip('reduce clutter testing with ordered dictionary')
+    # @unittest.skip('why?')
     def test_uses_copy_of_flat_dict(self):
         '''check that content of a dict is copied to output without references to input'''
         for exp_case in self.fd_cases:
@@ -714,19 +716,6 @@ class TestIteratorCreation(unittest.TestCase):
             matched.append(ele)
         self.assertEqual(len(expected), len(matched), 'ele counts not matched')
 
-    # @staticmethod
-    # def _walk_expandable(nest_level: int, srcobj: object):  # DEBUG
-    #     if isinstance(srcobj, dict):
-    #         for (key, val) in srcobj.items():
-    #             if isinstance(val, (dict, list)):
-    #                 print('«{}»key {!r} contains {}'.format(nest_level, key, type(val)))
-    #                 TestIteratorCreation._walk_expandable(nest_level + 1, val)
-    #         return
-    #     for idx, ele in enumerate(srcobj):
-    #         if isinstance(ele, (dict, list)):
-    #             print('«{}»idx {} contains {}'.format(nest_level, idx, type(ele)))
-    #             TestIteratorCreation._walk_expandable(nest_level + 1, ele)
-
     @staticmethod
     def _get_dict_from_expandable(srcobj: object) -> dict:
         '''recursively walk dictionaries and lists, collecting references to dictionaries'''
@@ -742,29 +731,16 @@ class TestIteratorCreation(unittest.TestCase):
                 for more in TestIteratorCreation._get_dict_from_expandable(ele):
                     yield more
 
-    # @unittest.skip('reduce clutter testing with ordered dictionary')
+    # @unittest.skip('why?')
     def test_gen_variant_dict(self):
-        '''check that list dictionary entries generate a variant per list element'''
-        # print('start test_gen_variant_dict for {}'.format(self.vd_cases))  # DEBUG
+        '''check that dictionary entries generate a variant per list element'''
         for exp_case in self.vd_cases:
-            # print('expand test case {!r}'.format(exp_case))  # DEBUG
             expect_ele_cnt = len(self.expected_out[exp_case])
-            # print('{} expected output cases'.format(expect_ele_cnt))  # DEBUG
-            # for idx, exp in enumerate(self.expected_out[exp_case]):  # DEBUG
-            #     print('exp[{}] == {}'.format(idx, exp))  # DEBUG
             src_obj = self.input_case[exp_case]  # reference to input object
-            # self._walk_expandable(0, src_obj)  # DEBUG
-            # references to the (ordered) dictionaries in the current expand test case
-            # d_in_case = [d_ref for d_ref in self._get_dict_from_expandable(src_obj)]
-            # print('found {} dictionaries with sizes {}'.format(
-            #     len(d_in_case),
-            #     [len(ref) for ref in d_in_case]))  # DEBUG
-            # for perm_set in multiple_key_permutations(d_in_case):
             for perm_set in multiple_key_permutations([d_ref for d_ref in
                                                        self._get_dict_from_expandable(src_obj)]):
                 # for each key permutation (all dictionaries)
-                # print('«»key set = {}'.format(perm_set))
-                with self.subTest(msg=repr(perm_set), ctx='permutation'):
+                with self.subTest(msg=repr(perm_set), ctx='permutation', case=exp_case):
                     # take a (fresh) copy of the input case that is safe to modify
                     in_obj = odict(copy.deepcopy(src_obj))
                     # get (matching) references to the dictionaries in the copy
@@ -778,7 +754,6 @@ class TestIteratorCreation(unittest.TestCase):
                     captured = []  # would prefer set, but dict not hashable
                     for out_ele in instance:
                         with self.subTest(msg=repr(perm_set), ctx='inline'):
-                            # print('ele == {}'.format(out_ele))  # DEBUG
                             # inline check; each output element should match a unique expected case
                             with self.subTest(msg=repr(perm_set), ctx='duplicate', dup=out_ele):
                                 self.assertNotIn(out_ele, captured, 'generated ele not unique')
@@ -787,11 +762,9 @@ class TestIteratorCreation(unittest.TestCase):
                                 out_ele, self.expected_out[exp_case], 'generated ele not expected')
                     self.assertEqual(expect_ele_cnt, len(captured), 'wrong output element count')
                     # full post iteration check, elements should change one step to the next
-                    # print(captured)  # DEBUG
                     with self.subTest(msg=repr(perm_set), ctx='post check'):
                         self._unordered_list_compare(self.expected_out[exp_case], captured)
                         # make sure that (post iteration) input changes do not affect collected data
-                        # print('source: {}'.format(in_obj))  # DEBUG
                         for idx, perm in enumerate(perm_set):
                             if isinstance(in_ref[idx][perm[0]], list):
                                 in_ref[idx][perm[0]].append('extra')
@@ -801,7 +774,6 @@ class TestIteratorCreation(unittest.TestCase):
                                 subcase = 'input ele changed'
                             with self.subTest(msg=repr(perm_set), ctx=subcase, prm=perm, idx=idx):
                                 self._unordered_list_compare(self.expected_out[exp_case], captured)
-                            # print('chgd: {}'.format(in_obj))  # DEBUG
                             del in_ref[idx][perm[-1]]
                             with self.subTest(msg=repr(perm_set),
                                               ctx='input key deleted', prm=perm, idx=idx):
@@ -810,7 +782,6 @@ class TestIteratorCreation(unittest.TestCase):
                             with self.subTest(msg=repr(perm),
                                               ctx='input key added', prm=perm, idx=idx):
                                 self._unordered_list_compare(self.expected_out[exp_case], captured)
-                            # print('final: {}'.format(in_ref[idx]))  # DEBUG
             # IDEA check that change to captured elements do not affect other elements??
 
 # py lint: disable=«warnings about accessing private members»
@@ -855,6 +826,4 @@ class TestIteratorCreation(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    # print(__name__)  # DEBUG
-    # print(__path__)  # «module reference».__path__ ?? not a module ??
     unittest.main()

@@ -37,8 +37,6 @@ class ExpandCombinations(object):
     nested dictionaries and lists'''
 
     def __init__(self, root: object):
-        if not ExpandCombinations.nestable_object(root):
-            raise TypeError('{} root object not handled by ExpandCombinations'.format(type(root)))
         self._state = {}
         self._nested = []
         self._state['static'] = {}  # content that passes through unprocessed
@@ -48,13 +46,16 @@ class ExpandCombinations(object):
             set_iterable = self._context.items()
             # defines order that keys are added as child elements
             self._state['mode'] = 'dict'  # maintain the source keys
+        elif not self.nestable_object(self._context):
+            set_iterable = []
+            self._state['mode'] = 'raw'  # return the raw root object
         else:
             set_iterable = enumerate(self._context)
             self._state['mode'] = 'list'  # maintain the source sequence
         # IDEA other processing when tuple?  tuple invalid as root?
 
         for idx, element in set_iterable:
-            if ExpandCombinations.nestable_object(element):
+            if self.nestable_object(element):
                 self._populate_nested(idx, element)
             else:
                 self._state['static'][idx] = element
@@ -105,8 +106,8 @@ class ExpandCombinations(object):
 
     @staticmethod
     def nestable_object(obj: object):
-        '''check if an object looks like it can be processed by this class'''
-        # tuple and str are iterable, but not useful as top level objects
+        '''check if an object should be processed (recursively) by this class'''
+        # tuple and str are iterable, but not to be processed
         return not isinstance(obj, (str, tuple)) and \
             (hasattr(obj, '__iter__') or hasattr(obj, '__getitem__'))
 
@@ -142,39 +143,64 @@ class ExpandCombinations(object):
         # end while True
     # end def _next_list_entry()
 
-    def __next__(self):
-        '''return the next combination from the root data set'''
+    def _check_next_done(self):
+        '''handle various special, early exit cases for __next__'''
         if not self._state['more_iterations']:
             raise StopIteration()
+        end_next = False
+        next_val = None
 
-        if not self._nested:
+        if self._state['mode'] == 'raw':
             self._state['more_iterations'] = False
-            return self._intermediate[0]  # copy cone when created
-            # return a **COPY** of the calculated combination
-            # return dict(self._intermediate[0])  # only a dictionary should get to here
+            end_next = True
+            next_val = self._context
 
-        if self._is_list():
-            return self._next_list_entry()
+        elif not self._nested:
+            self._state['more_iterations'] = False
+            end_next = True
+            next_val = self._intermediate[0]  # copy done when created
+
+        elif self._is_list():
+            end_next = True
+            next_val = self._next_list_entry()
+
+        return (end_next, next_val, )
+    # end def _check_next_done()
+
+    def _next_partial(self):
+        '''get the value for the next layer of the expansion'''
+        next_nest_idx = self._nst_idx + 1  # used multple times; calc once
+        if self._nested[self._nst_idx]['combo'] is None:
+            self._nested[self._nst_idx]['combo'] = []  # allow recreate iteration
+            raise StopIteration()
+        if self._nested[self._nst_idx]['combo'] == []:
+            element_value = {}  # merge of empty dictionary is same as original
+            self._nested[self._nst_idx]['combo'] = None  # prevent repeats here
+        else:
+            element_value = next(self._nested[self._nst_idx]['iter'])
+        # Fresh copy of current partial expanded combination
+        self._intermediate[next_nest_idx] = self._intermediate[self._nst_idx].copy()
+        if isinstance(element_value, dict):
+            # merge (casade) element_value into existing dictionary
+            self._intermediate[next_nest_idx].update(element_value)
+        else:
+            # set the existing entry to the calculated value
+            self._intermediate[next_nest_idx][
+                self._nested[self._nst_idx]['position']] = element_value
+        return next_nest_idx
+
+    def __next__(self):
+        '''return the next combination from the root data set'''
+        done_next, next_value = self._check_next_done()
+        if done_next:
+            return next_value
 
         # when merging nested content, maintain original sequence «where squence makes any sense»
         while True:  # keep going, until have complete combination to return
-            next_nest_idx = self._nst_idx + 1
             try:
-                element_value = next(self._nested[self._nst_idx]['iter'])
-                # Fresh copy of current partial expanded combination
-                self._intermediate[next_nest_idx] = self._intermediate[self._nst_idx].copy()
-                if isinstance(element_value, dict):
-                    # merge (casade) element_value into existing dictionary
-                    self._intermediate[next_nest_idx].update(element_value)
-                else:
-                    # set the existing entry to the calculated value
-                    self._intermediate[next_nest_idx][
-                        self._nested[self._nst_idx]['position']] = element_value
-
+                int_idx = self._next_partial()
                 if self._nst_idx == self._bottom_idx:  # yo-yo spin in place
-                    # already created a unique working copy so **SHOULD** be
-                    # safe to return directly (without another (deep) copy)
-                    return self._intermediate[next_nest_idx]
+                    return self._intermediate[int_idx]  # already cloned
                 self._nst_idx += 1  # yo-yo down on non-final element_value for combination
             except StopIteration as dummy_exc:
                 # no more values for the current (self._nst_idx) iterator

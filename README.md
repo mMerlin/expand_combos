@@ -104,10 +104,11 @@ print('{} unique pizza topping combinations'.format(len(dedup)))
 
 ## A somewhat more formal description of expansion
 
-* The expansion of anything other than a list or a dictionary is the source item itself [«⁴»](#fn4)
+* The expansion of anything other than a list or a dictionary is the source item itself
 * The expansion of a list is the «set¦sequence» of expansions of the elements in the list
 * The expansion of a dictionary is a «set¦sequence» of dictionaries containing the cascaded (merge) of the expansion of the elements in the (input) dictionary. [«¹»](#fn1)
 * The expansion of a dictionary element (key, value pair) is a dictionary.
+  * The expansion of a dictionary element with a value that is an empty list, is an empty dictionary.
   * The value of the element is expanded
   * If an instance of the expansion is NOT a dictionary, the source element expansion instance is a dictionary with a single element: the key of the source element, with a value of the expansion instance.
   * If an instance of the expansion is a dictionary, the source element expansion instance is that dictionary.  The source element key is not used.
@@ -120,7 +121,7 @@ print('{} unique pizza topping combinations'.format(len(dedup)))
 A list creates a sibling (not child) node for each element
 
 list expansion.
-```tex
+```text
 list: —┬— «node1»
        ├— «node2»
        ├— «node3»
@@ -129,7 +130,7 @@ list: —┬— «node1»
 Each node is the expansion of one element of the list.
 
 dictionary expansion.
-```tex
+```text
 dictionary: — «node1» —— «node2» —— «node3» —— «node…»
 ```
 Each node is the expansion of one element (key:value pair) of the dictionary.
@@ -144,12 +145,12 @@ element expansion.
 
 When the value expansion instance IS a dictionary:</br>
 element expansion.
-```tex
+```text
 «expansion instance»
 ```
 
 expanded intermediate dictionary node with list as value
-```tex
+```text
          ┌— «node2.1» —┐
          ├— «node2.2» —┤
 «node1» —┼— «node2.3» —┼—«node3»
@@ -190,6 +191,4 @@ Samples equiv1 through equiv7 demonstrate those cases, each of which creates a s
 
 <a name="fn2">«²»</a> Handling the non-expanding dictionary elements first is important.  The way the cascade works, these become the default values that expansion instances can override.  If these were not handled first, they could override cascaded values from the expansion instances instead.  An unlikely intended outcome.
 
-<a name="fn3">«³»</a> The cascade is (effectively) implemented as a recursive  `parent_dictionary.copy().update(child_node_expansion_instance)`, starting from the root node, out to a leaf.
-
-<a name="fn4">«⁴»</a> The current version of the code rejects non list or dictionary sources.  That is not intended to change, to be more consistent with the internal recursive processing.  Next version hopefully.
+<a name="fn3">«³»</a> The cascade is (effectively) implemented as a recursive  `parent_dictionary.copy().update(child_node_expansion_instance)`, starting from each leaf (as child node), back to the root.

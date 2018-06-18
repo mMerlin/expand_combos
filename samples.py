@@ -47,6 +47,8 @@ def mymain(*supplied_keys):
         'equiv5': {'other': [{'key': 'value'}, ], },
         'equiv6': {'key': [{'other': [{'key': 'value', }, ], }, ], },
         'equiv7': {'other1': [{'other2': [{'key': 'value', }, ], }, ], },
+        'test0': 'simple string',
+        'test1': {'key': 'value', 'dummy': [], },
         'sub1': {
             'family': 'bjt',
             'footprint': '',
