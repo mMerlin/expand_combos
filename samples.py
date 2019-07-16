@@ -1,5 +1,4 @@
-#!bin/python
-# coding=utf-8
+#!python
 
 """
 Application description docstring
@@ -7,9 +6,9 @@ Application description docstring
 
 # !/usr/bin/python3
 # for virtualenv
-# !bin/python
+# !«path»bin/python
 # using virtualenv
-#   source bin/activate
+#   source «path»/bin/activate
 
 # standard library imports
 import sys

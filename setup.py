@@ -5,7 +5,6 @@
 Make ExpandCombinations an installable (by pip) package
 """
 
-# from setuptools import setup
 from distutils.core import setup
 
 setup(
@@ -14,7 +13,7 @@ setup(
     py_modules=['expand_combinations'],
     license='MIT',
     author='Phil Duby',
-    summary='Generate multiple expanded dictionaries from nested dictionary and lists',
+    description='Generate multiple expanded dictionaries from nested dictionary and lists',
     # author_email='',
     url='https://github.com/mMerlin/expand_combos',
 )
